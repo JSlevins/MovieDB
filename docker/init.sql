@@ -35,7 +35,7 @@ CREATE TABLE people (
 );
 
 -- TYPE > role_type
-CREATE TYPE role_type AS ENUM ('actor', 'director', 'writer', 'showrunner'); -- roles
+CREATE TYPE role_type AS ENUM ('actor', 'director', 'writer', 'creator'); -- roles
 
 -- TITLE_ROLES
 CREATE TABLE title_roles (
@@ -43,7 +43,7 @@ CREATE TABLE title_roles (
     person_id INT REFERENCES people(person_id),
     role role_type not null,
 
-    PRIMARY KEY (title_id, person_id)
+    PRIMARY KEY (title_id, person_id, role)
 );
 
 -- GENRES
