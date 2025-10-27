@@ -1,13 +1,13 @@
 class MediaTitle:
     #Class representing a media title (movie, series, etc.) with attributes, and methods for JSON/YAML serialization.
 
-    def __init__(self, title, year, director, writers, poster, genre, runtime, actors, plot, awards, country, imdb_id,
+    def __init__(self, title, year, director, writers, poster, genre, runtime, actors, plot, awards, country, imdbid,
                  imdb_rating, title_type, my_rating=None):
 
         # Checking required fields for not None
-        if None in (title, year, director, imdb_id, imdb_rating):
-            missing = [name for name, val in zip(("title", "year", "director", "imdb_id", "imdb_rating"),
-            (title, year, director, imdb_id, imdb_rating)) if val is None]
+        if None in (title, year, director, imdbid, imdb_rating):
+            missing = [name for name, val in zip(("title", "year", "director", "imdbid", "imdb_rating"),
+            (title, year, director, imdbid, imdb_rating)) if val is None]
             raise ValueError(f"Missing required fields: {', '.join(missing)}")
 
         self.title = title
@@ -21,7 +21,7 @@ class MediaTitle:
         self.plot = plot
         self.awards = awards
         self.country = country
-        self.imdb_id = imdb_id
+        self.imdbid = imdbid
         self.imdb_rating = imdb_rating
         self.title_type = title_type
         self.my_rating = my_rating or 0
@@ -42,7 +42,7 @@ class MediaTitle:
             awards=data.get("Awards"),
             country=data.get("Country"),
             imdb_rating=data.get("imdbRating"),
-            imdb_id=data.get("imdbID"),
+            imdbid=data.get("imdbID"),
             title_type=data.get("Type"),
         )
 
@@ -54,9 +54,10 @@ class MediaTitle:
     #     return cls()
 
     def __str__ (self):
-       pass
-
-    __repr__ = __str__
+        # (temporary)
+        return f"{self.title}, {self.year}, {self.director}"
+    #
+    # __repr__ = __str__
 
     def to_json(self):
         pass

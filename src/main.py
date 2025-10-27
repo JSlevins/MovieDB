@@ -2,10 +2,12 @@ from dotenv import load_dotenv
 import os
 import requests
 
+from src.dbmanager import DbManager
+from src.media_title import MediaTitle
+
 load_dotenv()
 api_key = os.getenv('OMDb_API_KEY')
 
-# TODO: add CLI param change
 def get_movie(title):
 
     url = 'http://www.omdbapi.com/'
@@ -23,5 +25,7 @@ def get_movie(title):
 
 # Example
 movie_info = get_movie("Inception")
-for k, v in movie_info.items():
-    print(k,": ", v)
+movie = MediaTitle.from_json(movie_info)
+print(movie)
+dbmanager = DbManager()
+dbmanager.add_title(movie, 9)

@@ -1,10 +1,5 @@
 # IMAGE
 FROM postgres:latest
 
-# ENVs (temporary)
-ENV POSTGRES_USER=admin
-ENV POSTGRES_PASSWORD=admin
-ENV POSTGRES_DB=moviedb
-
 # Copying init.sql file (creating tables, types and references)
 COPY init.sql /docker-entrypoint-initdb.d/

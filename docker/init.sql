@@ -6,24 +6,32 @@ CREATE TABLE types (
     name VARCHAR(50) NOT NULL
 );
 
+-- INSERTING default types
+INSERT INTO types (type_id, name)
+VALUES (1, 'movie'), (2, 'series');
+
 CREATE TABLE statuses (
     status_id INT PRIMARY KEY,
     name VARCHAR(50) UNIQUE NOT NULL
 );
+
+-- INSERTING default status
+INSERT INTO statuses (status_id, name)
+VALUES (1, 'watched');
 
 -- TITLES
 CREATE TABLE titles (
     title_id SERIAL PRIMARY KEY,
     title VARCHAR(150) unique not null,
     year INT NOT NULL,
-    runtime INT,
+    runtime TEXT,
     poster TEXT,
     plot TEXT,
     awards TEXT,
     imdb_rating NUMERIC(3,1) not null,
     imdbID VARCHAR(15) unique not null,
     type_id INT REFERENCES types(type_id),
-    my_rating INT, -- my own rating (0, 10)/(0, 15)
+    my_rating INT, -- my own rating (0, 10)
     -- For future functionality implementation - not used at this moment (But 1 means 'watched')
     status_id INT REFERENCES statuses(status_id) DEFAULT 1
 );
@@ -31,7 +39,7 @@ CREATE TABLE titles (
 -- PEOPLE
 CREATE TABLE people (
     person_id SERIAL PRIMARY KEY,
-    name VARCHAR(150) NOT NULL
+    name VARCHAR(150) UNIQUE NOT NULL
 );
 
 -- TYPE > role_type
