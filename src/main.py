@@ -26,6 +26,6 @@ def get_movie(title):
 # Example
 movie_info = get_movie("Inception")
 movie = MediaTitle.from_json(movie_info)
-print(movie)
+
 dbmanager = DbManager()
-dbmanager.add_title(movie, 9)
+dbmanager.add_title(movie, 10)

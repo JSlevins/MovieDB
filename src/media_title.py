@@ -12,15 +12,15 @@ class MediaTitle:
 
         self.title = title
         self.year = year
-        self.director = director
-        self.writers = writers
+        self.director = self._list_parsing(director)
+        self.writers = self._list_parsing(writers)
         self.poster = poster
-        self.genre = genre
+        self.genre = self._list_parsing(genre)
         self.runtime = runtime
-        self.actors = actors
+        self.actors = self._list_parsing(actors)
         self.plot = plot
         self.awards = awards
-        self.country = country
+        self.country = self._list_parsing(country)
         self.imdbid = imdbid
         self.imdb_rating = imdb_rating
         self.title_type = title_type
@@ -53,12 +53,6 @@ class MediaTitle:
     #      imdbID, title_type, my_rating) = row
     #     return cls()
 
-    def __str__ (self):
-        # (temporary)
-        return f"{self.title}, {self.year}, {self.director}"
-    #
-    # __repr__ = __str__
-
     def to_json(self):
         pass
 
@@ -70,3 +64,12 @@ class MediaTitle:
 
     def update_status(self):
         pass
+
+    def _list_parsing(self, string: str) -> list:
+        return string.split(", ")
+
+    def __str__ (self):
+        # (temporary)
+        return f"{self.title}, {self.year}, {self.director}"
+    #
+    # __repr__ = __str__

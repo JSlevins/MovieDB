@@ -15,12 +15,11 @@ services:
 
   app:
     build:
-      context: ./src     #path to Dockerfile
+      context: .     #path to Dockerfile
     container_name: moviedb_app
     depends_on:
       - db
     command: sh -c "sleep 3 && python main.py"
     volumes:
       - ./.env:/app/.env
-      - ./src:/app
     tty: true

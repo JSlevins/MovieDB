@@ -11,10 +11,11 @@ class DuplicateMovieError(Exception):
     pass
 
 class DbManager:
-    def __init__(self):
-        self.conn = psycopg2.connect(database = "moviedb",
-            host = "db",
-            port = "5432",
+    def __init__(self, database="moviedb", host = "db", port = "5432", user = db_user, password = db_password):
+        self.conn = psycopg2.connect(
+            database = database,
+            host = host,
+            port = port,
             user = db_user,
             password = db_password
         )
@@ -54,8 +55,7 @@ class DbManager:
                 if row is not None:
                     person_id = row[0]
                 else:
-                    self.cur.execute("""INSERT INTO people (name) VALUES (%s) ON CONFLICT (name) DO NOTHING
-                    RETURNING person_id""", (actor,))
+                    self.cur.execute("INSERT INTO people (name) VALUES (%s) RETURNING person_id", (actor,))
                     person_id = self.cur.fetchone()[0]
                 actors.append(person_id)
 
@@ -67,8 +67,7 @@ class DbManager:
                 if row is not None:
                     person_id = row[0]
                 else:
-                    self.cur.execute("""INSERT INTO people (name) VALUES (%s) ON CONFLICT (name) DO NOTHING 
-                    RETURNING person_id""", (writer,))
+                    self.cur.execute("INSERT INTO people (name) VALUES (%s) RETURNING person_id", (writer,))
                     person_id = self.cur.fetchone()[0]
                 writers.append(person_id)
 
@@ -82,28 +81,25 @@ class DbManager:
                     if row is not None:
                         person_id = row[0]
                     else:
-                        self.cur.execute("""INSERT INTO people (name) VALUES (%s) ON CONFLICT (name) DO NOTHING 
-                        RETURNING person_id""", (director,))
+                        self.cur.execute("INSERT INTO people (name) VALUES (%s) RETURNING person_id", (director,))
                         person_id = self.cur.fetchone()[0]
                     directors.append(person_id)
 
             # INSERT into 'title_roles' table
             # ACTORS
             for person_id in actors:
-                self.cur.execute("""INSERT INTO title_roles (title_id, person_id, role) VALUES (%s, %s, %s) 
-                ON CONFLICT (title_id, person_id, role) DO NOTHING""", (title_id, person_id, "actor"))
+                self.cur.execute("INSERT INTO title_roles (title_id, person_id, role) VALUES (%s, %s, %s)", (title_id, person_id, "actor"))
 
             # WRITERS / CREATORS
             role = "writer" if t_type == 1 else "creator"
             for person_id in writers:
-                self.cur.execute("""INSERT INTO title_roles (title_id, person_id, role) VALUES (%s, %s, %s) 
-                ON CONFLICT (title_id, person_id, role) DO NOTHING""", (title_id, person_id, role))
+                self.cur.execute("INSERT INTO title_roles (title_id, person_id, role) VALUES (%s, %s, %s)", (title_id, person_id, role))
 
             # DIRECTORS
             if directors:
                 for person_id in directors:
-                    self.cur.execute("""INSERT INTO title_roles (title_id, person_id, role) VALUES (%s, %s, %s) 
-                    ON CONFLICT (title_id, person_id, role) DO NOTHING""", (title_id, person_id, "director"))
+                    self.cur.execute("INSERT INTO title_roles (title_id, person_id, role) VALUES (%s, %s, %s)",
+                                     (title_id, person_id, "director"))
 
 
             # INSERT into 'genres' table
@@ -114,15 +110,13 @@ class DbManager:
                 if row is not None:
                     genre_id = row[0]
                 else:
-                    self.cur.execute("""INSERT INTO genres (name) VALUES (%s) ON CONFLICT (name) DO NOTHING 
-                    RETURNING genre_id""", (genre,))
+                    self.cur.execute("INSERT INTO genres (name) VALUES (%s) RETURNING genre_id", (genre,))
                     genre_id = self.cur.fetchone()[0]
                 genres.append(genre_id)
 
             # INSERT into 'title_genres' table
             for genre in genres:
-                self.cur.execute("""INSERT INTO title_genres (title_id, genre_id) VALUES (%s, %s) 
-                ON CONFLICT (title_id, genre_id) DO NOTHING""", (title_id, genre,))
+                self.cur.execute("INSERT INTO title_genres (title_id, genre_id) VALUES (%s, %s)", (title_id, genre,))
 
             # INSERT into 'countries' table
             countries = []
@@ -132,15 +126,13 @@ class DbManager:
                 if row is not None:
                     country_id = row[0]
                 else:
-                    self.cur.execute("""INSERT INTO countries (name) VALUES (%s) ON CONFLICT (name) DO NOTHING
-                    RETURNING country_id""", (country,))
+                    self.cur.execute("INSERT INTO countries (name) VALUES (%s) RETURNING country_id", (country,))
                     country_id = self.cur.fetchone()[0]
                 countries.append(country_id)
 
             # INSERT into 'title_countries' table
             for country in countries:
-                self.cur.execute("""INSERT INTO title_countries (title_id, country_id) VALUES (%s, %s) 
-                ON CONFLICT (title_id, country_id) DO NOTHING""", (title_id, country))
+                self.cur.execute("INSERT INTO title_countries (title_id, country_id) VALUES (%s, %s)", (title_id, country))
 
             # If everything is fine...
             self.conn.commit()
@@ -173,6 +165,7 @@ class DbManager:
         pass
 
     def record_exists(self, imdbid:str) -> bool:
+        # Returns TRUE if movie exists
         self.cur.execute("SELECT 1 FROM titles WHERE imdbID = %s;", (imdbid,))
         return self.cur.fetchone() is not None
 
