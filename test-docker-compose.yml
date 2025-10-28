@@ -1,0 +1,27 @@
+services:
+
+  db_test:
+    build:
+      context: ./docker    #path to Dockerfile
+    container_name: moviedb_db_test
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: moviedb_test
+    volumes:
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql    #path to init.sql
+    ports:
+      - "5433:5432"
+
+  app:
+    build:
+      context: .     #path to Dockerfile
+    container_name: moviedb_app
+    depends_on:
+      - db_test
+    command: sh -c "sleep 3 && PYTHONPATH=/app pytest /app/tests/ -v"
+    volumes:
+      - ./src:/app/src
+      - ./.env:/app/.env
+      - ./tests:/app/tests
+    tty: true
