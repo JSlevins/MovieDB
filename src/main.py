@@ -23,9 +23,14 @@ def get_movie(title):
     else:
         return f"Error: {response.status_code}"
 
-# Example
+# Example and testing
 movie_info = get_movie("Inception")
 movie = MediaTitle.from_json(movie_info)
-
-dbmanager = DbManager()
-dbmanager.add_title(movie, 10)
+print("-" * 50)
+print('API MOVIE:')
+print(movie)
+dbm = DbManager()
+dbm.add_title(movie, 10)
+print("\n"+"-"*50)
+print('Db MOVIE:')
+print(dbm.get_title_by_imdbid('tt1375666'))

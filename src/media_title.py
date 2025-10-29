@@ -44,6 +44,7 @@ class MediaTitle:
             imdb_rating=data.get("imdbRating"),
             imdbid=data.get("imdbID"),
             title_type=data.get("Type"),
+            my_rating=data.get("MyRating"),
         )
 
     # @classmethod
