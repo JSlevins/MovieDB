@@ -6,9 +6,12 @@ from src.media_title import MediaTitle
 
 @pytest.fixture(scope='module')
 def dbm():
+    # Connecting to Test Db
     dbm = DbManager(database="moviedb_test", host="db_test", port="5432", user="admin", password="admin")
+    # Cleaning all tables
     dbm.cur.execute("TRUNCATE TABLE titles, people, genres, countries RESTART IDENTITY CASCADE")
     yield dbm
+    # Closing connection
     dbm.conn.close()
 
 def test_db_connection(dbm):

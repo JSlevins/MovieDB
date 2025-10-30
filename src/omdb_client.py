@@ -1,3 +1,11 @@
+import requests, re
+
+class OMDbError(Exception): pass
+class OMDbInvalidKeyError(OMDbError): pass
+class OMDbNotFoundError(OMDbError): pass
+class OMDbInvalidIDError(OMDbError): pass
+class OMDbConnectionError(OMDbError): pass
+
 class OMDbClient:
     """
     Handles communication with the OMDb API to search and retrieve movie information.
@@ -7,14 +15,60 @@ class OMDbClient:
         - Retrieve detailed information for a specific movie by IMDb ID.
         - Handle API keys, request parameters, and basic error checking.
     """
-    def __init__(self):
-        pass
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.base_url = 'https://www.omdbapi.com/'
 
-    def get_title(self):
-        pass
 
-    def search_title(self):
-        pass
+    def get_title_by_imdbid(self, imdbid: str) -> dict:
+        # Format checking
+        if not re.fullmatch(r"tt\d{7,9}", imdbid):
+            raise ValueError("Invalid IMDb ID format. Expected format: 'tt1234567'")
 
-    def _handle_error(self, error):
-        pass
+        # Query parameters
+        params = {
+            'apikey': self.api_key,
+            'i': imdbid,
+        }
+
+        return self._request(params)
+
+    def get_title_by_name(self, title: str) -> dict:
+        # Query parameters
+        params = {
+            'apikey': self.api_key,
+            't': title,
+        }
+
+        return self._request(params)
+
+    def search_title(self, substring: str) -> dict:
+        # Query parameters
+        params = {
+            'apikey': self.api_key,
+            's': substring
+        }
+
+        return self._request(params)
+
+    def _request(self, params: dict) -> dict:
+        # Send request
+        response = requests.get(self.base_url, params=params, timeout=10)
+
+        # HTTP status check
+        if response.status_code != 200:
+            raise OMDbConnectionError(f"OMDb API returned {response.status_code}")
+        data = response.json()
+        # Response flag check
+        return data if data.get('Response') == 'True' else self._handle_error(data)
+
+    def _handle_error(self, data) -> None:
+        msg = data.get('Error', 'Unknown error')
+        if "Invalid API key!" in msg:
+            raise OMDbInvalidKeyError(msg)
+        elif "Incorrect IMDb ID." in msg:
+            raise OMDbInvalidIDError(msg)
+        elif "Movie not found!" in msg:
+            raise OMDbNotFoundError(msg)
+        else:
+            raise OMDbError(msg)

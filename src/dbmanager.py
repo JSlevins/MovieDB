@@ -43,7 +43,7 @@ class DbManager:
     def get_title_by_imdbid(self, imdbid) -> MediaTitle | None :
         # Format checking
         if not re.fullmatch(r"tt\d{7,9}", imdbid):
-            raise ValueError("Invalid IMDb ID format. Expected value: 'tt0000000'")
+            raise ValueError("Invalid IMDb ID format. Expected format: 'tt1234657'")
 
         # Checking if movie exists
         if self.query_record_exist_imdbid(imdbid):
