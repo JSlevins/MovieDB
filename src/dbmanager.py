@@ -8,11 +8,8 @@ load_dotenv()
 db_user = os.getenv("DB_USER")
 db_password = os.getenv("DB_PASSWORD")
 
-class DuplicateMovieError(Exception):
-    pass
-
-class MovieNotFoundError(Exception):
-    pass
+class DuplicateMovieError(Exception): pass
+class MovieNotFoundError(Exception): pass
 
 class DbManager:
     """
