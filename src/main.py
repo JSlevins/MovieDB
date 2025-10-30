@@ -25,7 +25,7 @@ def get_movie(title):
 
 # Example and testing
 movie_info = get_movie("Inception")
-movie = MediaTitle.from_json(movie_info)
+movie = MediaTitle.from_dict(movie_info)
 print("-" * 50)
 print('API MOVIE:')
 print(movie)

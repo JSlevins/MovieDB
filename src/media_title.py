@@ -1,5 +1,5 @@
 class MediaTitle:
-    #Class representing a media title (movie, series, etc.) with attributes, and methods for JSON/YAML serialization.
+    """Class represents a media title (movie, series, etc.) with attributes, and methods for JSON/YAML serialization."""
 
     def __init__(self, title, year, director, writers, poster, genre, runtime, actors, plot, awards, country, imdbid,
                  imdb_rating, title_type, my_rating=None):
@@ -27,7 +27,7 @@ class MediaTitle:
         self.my_rating = my_rating or 0
 
     @classmethod
-    def from_json(cls, data: dict):
+    def from_dict(cls, data: dict):
         #Creating an instance from json
         return cls(
             title=data.get("Title"),
@@ -47,30 +47,11 @@ class MediaTitle:
             my_rating=data.get("MyRating"),
         )
 
-    # @classmethod
-    # def from_db(cls, row: tuple):
-    #     #Creating an instance from database
-    #     (title, year, director, writers, poster, genre, runtime, actors, plot, country, imdb_rating,
-    #      imdbID, title_type, my_rating) = row
-    #     return cls()
-
-    def to_json(self):
-        pass
-
-    def to_yaml(self):
-        pass
-
-    def update_rating(self):
-        pass
-
-    def update_status(self):
-        pass
-
     def _list_parsing(self, string: str) -> list:
         return string.split(", ")
 
     def __str__ (self):
         # (temporary)
         return f"{self.title}, {self.year}, {self.director}"
-    #
-    # __repr__ = __str__
+
+    __repr__ = __str__
