@@ -47,7 +47,8 @@ class MediaTitle:
             my_rating=data.get("MyRating"),
         )
 
-    def _list_parsing(self, string: str) -> list:
+    @staticmethod
+    def _list_parsing(string: str) -> list:
         return string.split(", ")
 
     def __str__ (self):

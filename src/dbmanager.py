@@ -1,8 +1,12 @@
-from src.media_title import MediaTitle
-from dotenv import load_dotenv
+import os
+import re
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import os, re
+from dotenv import load_dotenv
+
+from src.media_title import MediaTitle
+
 
 load_dotenv()
 db_user = os.getenv("DB_USER")

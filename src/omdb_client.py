@@ -1,10 +1,17 @@
-import requests, re
+import re
+import os
+
+import requests
+from dotenv import load_dotenv
 
 class OMDbError(Exception): pass
 class OMDbInvalidKeyError(OMDbError): pass
 class OMDbNotFoundError(OMDbError): pass
 class OMDbInvalidIDError(OMDbError): pass
 class OMDbConnectionError(OMDbError): pass
+
+load_dotenv()
+API_KEY = os.getenv('OMDb_API_KEY')
 
 class OMDbClient:
     """
@@ -15,7 +22,7 @@ class OMDbClient:
         - Retrieve detailed information for a specific movie by IMDb ID.
         - Handle API keys, request parameters, and basic error checking.
     """
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str = API_KEY):
         self.api_key = api_key
         self.base_url = 'https://www.omdbapi.com/'
 
