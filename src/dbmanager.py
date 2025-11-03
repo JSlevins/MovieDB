@@ -71,7 +71,7 @@ class DbManager:
          or above presented
         """
         # Rating value validation:
-        if not 0 < my_rating <= 10:
+        if not 0 <= my_rating <= 10:
             raise ValueError("Rating must be between 0 and 10")
 
         # Getting list of imdbIDs
