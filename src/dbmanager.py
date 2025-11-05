@@ -12,8 +12,8 @@ load_dotenv()
 db_user = os.getenv("DB_USER")
 db_password = os.getenv("DB_PASSWORD")
 
-class DuplicateMovieError(Exception): pass
-class MovieNotFoundError(Exception): pass
+class DbDuplicateMovieError(Exception): pass
+class DbMovieNotFoundError(Exception): pass
 
 class DbManager:
     """
@@ -38,33 +38,32 @@ class DbManager:
 
         # Checking for existing title
         if self.query_record_exist_imdbid(title.imdbid):
-            raise DuplicateMovieError(f"Movie {title.title} already exists in Db")
+            raise DbDuplicateMovieError(f"Movie {title.title} already exists in Db")
 
         # Adding title to Db
         query = self.query_add_title(title, my_rating)
         return query
 
-    def get_title_by_imdbid(self, imdbid) -> MediaTitle | None :
+    def get_title_by_imdbid(self, imdbid) -> dict[str, str] | None :
         # Format checking
         if not re.fullmatch(r"tt\d{7,9}", imdbid):
-            raise ValueError("Invalid IMDb ID format. Expected format: 'tt1234657'")
+            raise ValueError("Invalid IMDb ID format. Expected format: 'tt123456789'")
 
         # Checking if movie exists
         if self.query_record_exist_imdbid(imdbid):
-            movie = self.query_get_title_by_imdbid(imdbid)
-            # Creating MediaTitle from query
-            return MediaTitle.from_dict(movie)
-        else:
-            raise MovieNotFoundError(f"Title with IMDbID {imdbid} not found.")
+            return self.query_get_title_by_imdbid(imdbid)
 
-    def get_title_by_name(self, title_name) -> MediaTitle | None:
+        else:
+            raise DbMovieNotFoundError(f"Title with IMDbID {imdbid} not found.")
+
+    def get_title_by_name(self, title_name) -> dict[str, str] | None:
         imdbid = self.query_get_title_by_name(title_name)
         if imdbid:
             return self.get_title_by_imdbid(imdbid)
         else:
-            raise MovieNotFoundError(f"Title with name {title_name} not found.")
+            raise DbMovieNotFoundError(f"Title with name {title_name} not found.")
 
-    def get_titles_by_rating(self, my_rating: int) -> list[MediaTitle]:
+    def get_titles_by_rating(self, my_rating: int) -> list[dict[str, str]]:
         """
         Get list of MediaTitles from Db that has my_rating equal to or greater than presented
         :return: list[MediaTitle]: List of MediaTitle objects
@@ -91,7 +90,7 @@ class DbManager:
         # Returning list of MediaTitles
         return [self.get_title_by_imdbid(imdbid) for imdbid in query] if query else []
 
-    def search_titles_by_name(self, substring: str) -> list[str]:
+    def search_titles_by_name(self, substring: str) -> list[dict[str, str]]:
         """
         Search titles by partial name.
         :return: list[MediaTitle]: List of MediaTitle objects
@@ -102,7 +101,7 @@ class DbManager:
         # Returning list of MediaTitles
         return [self.get_title_by_imdbid(imdbid) for imdbid in query] if query else []
 
-    def update_rating(self, imdbid: str, rating: int):
+    def update_rating(self, imdbid: str, rating: str):
         # Format checking
         if not re.fullmatch(r"tt\d{7,9}", imdbid):
             raise ValueError("Invalid IMDb ID format. Expected value: 'tt0000000'")
