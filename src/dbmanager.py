@@ -31,11 +31,7 @@ class DbManager:
         )
         self.cur = self.conn.cursor(cursor_factory = RealDictCursor)
 
-    def add_title(self, title: MediaTitle, my_rating: int) -> bool:
-        # Rating value validation
-        if not 0 < my_rating <= 10:
-            raise ValueError("Rating must be between 0 and 10")
-
+    def add_title(self, title: MediaTitle, my_rating: str) -> bool:
         # Checking for existing title
         if self.query_record_exist_imdbid(title.imdbid):
             raise DbDuplicateMovieError(f"Movie {title.title} already exists in Db")
@@ -63,16 +59,12 @@ class DbManager:
         else:
             raise DbMovieNotFoundError(f"Title with name {title_name} not found.")
 
-    def get_titles_by_rating(self, my_rating: int) -> list[dict[str, str]]:
+    def get_titles_by_rating(self, my_rating: str) -> list[dict[str, str]]:
         """
         Get list of MediaTitles from Db that has my_rating equal to or greater than presented
         :return: list[MediaTitle]: List of MediaTitle objects
          or above presented
         """
-        # Rating value validation:
-        if not 0 <= my_rating <= 10:
-            raise ValueError("Rating must be between 0 and 10")
-
         # Getting list of imdbIDs
         query = self.query_get_titles_by_rating(my_rating)
 
@@ -116,7 +108,7 @@ class DbManager:
     #     """
     #     pass
 
-    def query_add_title(self, title: MediaTitle, my_rating: int) -> bool:
+    def query_add_title(self, title: MediaTitle, my_rating: str) -> bool:
         # Movie/Series checking - additional types could be implemented in the future
         t_type = 1 if title.title_type == "movie" else 2
 
@@ -230,7 +222,7 @@ class DbManager:
             self.conn.rollback()
             raise e
 
-    def query_get_titles_by_rating(self, my_rating: int) -> list[str]:
+    def query_get_titles_by_rating(self, my_rating: str) -> list[str]:
         self.cur.execute("SELECT imdbid from titles WHERE my_rating >= %s", (my_rating,))
         rows = self.cur.fetchall()
         return [row["imdbid"] for row in rows]
@@ -288,7 +280,7 @@ class DbManager:
         rows = self.cur.fetchall()
         return [row["imdbid"] for row in rows]
 
-    def query_update_rating(self, imdbid: str, rating: int) -> bool:
+    def query_update_rating(self, imdbid: str, rating: str) -> bool:
         try:
             self.cur.execute("UPDATE titles SET my_rating = %s WHERE imdbid = %s;", (rating, imdbid))
             self.conn.commit()

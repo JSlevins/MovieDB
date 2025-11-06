@@ -1,5 +1,7 @@
 import os
 import re
+import sys
+
 from functools import partial
 from typing import List, Tuple, Callable, Optional
 
@@ -24,6 +26,7 @@ class CLI:
         self.dbm: DbManager = DbManager()
         self.stage: int = 0
         self.media: Optional[MediaTitle] = None
+        self.from_db: bool = False  # Navigation purpose
         self.functions: List[Tuple[Callable, str, int]] = []  ### temp placeholder ### (func, func_dest, menu_stage)
         self.actions: List[Tuple[Callable, str]] = []
 
@@ -94,16 +97,18 @@ class CLI:
         stage_header = {
             1: "Main menu",
             2: "OMDb",
-            3: f'"{self.media.title}"({self.media.year})',
+            3: f"OMDb\n'{self.media.title}' ({self.media.year})",
             4: "My Database",
             5: "Search results",
-            6: f'"{self.media.title}"({self.media.year})'
+            6: f"My Database\n'{self.media.title}' ({self.media.year})"
         }
         msg = stage_header.get(self.stage)
 
         # Print header
         print('\n' + '-' * 50 + '\n')
-        print(msg.center(50) + '\n')
+        for line in msg.splitlines():
+            print(line.center(50))
+        print('\n')
 
     # OMDb methods
     def omdb_get_media_by_title(self) -> None:
@@ -128,6 +133,7 @@ class CLI:
             data = self.client.search_title(title_name)
             # Continue to search results
             self.stage = 5
+            self.from_db = False
             self.print_search_results(data)
 
         except OMDbError as e:
@@ -167,7 +173,28 @@ class CLI:
                 self.stage = 1
                 return self.run_action()
 
-    def omdb_add_to_db(self): pass
+    def omdb_add_to_db(self) -> None:
+        """ Stage 3: Add title to my database."""
+        print("\nSaving media to database...")
+        while True:
+            rating = input("Enter rating (0-10): ")
+            if not self._rating_input_validation(rating):
+                continue
+            else:
+                try:
+                    result = self.dbm.add_title(self.media, rating)
+                    if result:
+                        print(f"'{self.media.title}' has been successfully saved to the database.")
+                        self.stage = 6
+                        return self.run_action()
+                except DbDuplicateMovieError as e:
+                    print("This media already exists in database.")
+                    self.stage = 6
+                    return self.run_action()
+                except Exception as e:
+                    print(f"Something went wrong. {e}")
+                    print("Returning to previous menu.")
+                    return self.go_back()
 
     # DB methods
     def db_get_media_by_title(self) -> None:
@@ -196,6 +223,7 @@ class CLI:
 
             # Continue to search results
             self.stage = 5
+            self.from_db = True
             self.print_search_results(data)
 
         except Exception as e:
@@ -245,6 +273,7 @@ class CLI:
 
         # Continue to search results
         self.stage = 5
+        self.from_db = True
         self.print_search_results(data)
 
     def db_show_media_by_rating(self) -> None:
@@ -256,10 +285,10 @@ class CLI:
             if not self._rating_input_validation(rating):
                 continue
 
-            rating = int(rating)
             data = self.dbm.get_titles_by_rating(rating)
             data = {"Search": data}
             self.stage = 5
+            self.from_db = True
             return self.print_search_results(data)
 
     #Universal methods
@@ -284,7 +313,10 @@ class CLI:
             imdb_id_str = result.get('imdbID')
             description = f'{title_str:<50} {year_str:<6} {imdb_id_str}'
 
-            self.actions.append((partial(self.client.get_title_by_imdbid, imdb_id_str), description))
+            if self.from_db:
+                self.actions.append((partial(self.dbm.get_title_by_imdbid, imdb_id_str), description))
+            else:
+                self.actions.append((partial(self.client.get_title_by_imdbid, imdb_id_str), description))
 
         ### Print menu
         # Format width of menu counter
@@ -302,7 +334,30 @@ class CLI:
 
         self.run_action(search_flag=True)
 
-    def media_show(self): pass
+    def media_show(self) -> None:
+        """ Print FULL information about actual media title. """
+        print('\n' + '-' * 75 + '\n')
+        year_and_runtime = f"{self.media.year}   -({self.media.runtime})-"
+        title = f"'{self.media.title}'"
+        print(f"{title.center(75)}")
+        print(f"{year_and_runtime.center(75)}")
+        rating = f"""IMDb Rating: {self.media.imdb_rating}/10 | My Rating: {self.media.my_rating}/10 | IMDbID: {self.media.imdbid}"""
+        print(f"{rating.center(75)}")
+        print('\n' + '-' * 75 + '\n')
+        if self.media.title_type == 'movie':
+            suf = '' if len(self.media.director) == 1 else 's'
+            print(f"Director{suf}: {self.media.director}")
+            suf = '' if len(self.media.writers) == 1 else 's'
+            print(f"Writer{suf}: {self.media.writers}")
+        else:
+            suf = '' if len(self.media.writers) == 1 else 's'
+            print(f"Creator{suf}: {self.media.writers}")
+        print(f"Actors: {self.media.actors}")
+        print(f"\nGenre: {self.media.genre}")
+        print(f"Plot: {self.media.plot}")
+        label = 'Country' if len(self.media.country) == 1 else 'Countries'
+        print(f"\n{label}: {self.media.country}")
+        print(f"Awards: {self.media.awards}")
 
     def media_update_rating(self) -> None:
         """ Update user rating for media title. """
@@ -330,7 +385,7 @@ class CLI:
                     return self.quit()
                 continue
 
-    def save_json(self):
+    def save_json(self) -> None:
         """ Save media title to JSON. """
         full_path = self._path_handler('json')
 
@@ -342,7 +397,7 @@ class CLI:
         except OSError as e:
             print(f"Failed to save JSON: {e}")
 
-    def save_yaml(self):
+    def save_yaml(self) -> None:
         """ Save media title to YAML. """
         full_path = self._path_handler('yaml')
 
@@ -363,9 +418,37 @@ class CLI:
         self.stage = 4
         self.run_action()
 
-    def go_back(self): pass
-    def quit(self): pass
+    def go_back(self) -> None:
+        """ Make 'return' to different menu stage. Depends on stage """
+        back_menu = {
+            1: 1,  # Main menu
+            2: 1,  # From OMDb to main menu
+            3: 2,  # From 'OMDb media title'  to OMDb menu
+            4: 1,  # From MyDb to main menu
+            6: 1  # From 'media title' menu to main menu
+        }
 
+        # Check 'from_db' flag for stage = 5 case
+        if self.stage == 5:
+            # From Search Results to OMDb menu or MyDb menu
+            self.stage = 4 if self.from_db else 2
+        else:
+            self.stage = back_menu[self.stage]
+        self.run_action()
+
+    def quit(self) -> None:
+        """ Close DbManager connection and exit application. """
+        print("\nExiting MovieDb. Goodbye!")
+
+        #Close DbManager connection
+        try:
+            self.dbm.close()
+        except Exception as e:
+            print(f"Failed to close database: {e}")
+
+        sys.exit(0)
+
+    # Inner methods
     @staticmethod
     def _rating_input_validation(rating: str) -> bool:
         # Validation input check
