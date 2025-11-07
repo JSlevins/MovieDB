@@ -11,7 +11,7 @@ def get_movie():
     return movie
 
 def test_media_title_init(get_movie):
-    media = MediaTitle.from_json(get_movie)
+    media = MediaTitle.from_dict(get_movie)
 
     assert media.title == "Inception"
     assert media.year == "2010"
