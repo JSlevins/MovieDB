@@ -20,13 +20,29 @@ class CLI:
     consistent error handling and user feedback.
     """
     def __init__(self):
+        # External clients (init later)
+        self.client: OMDbClient | None = None
+        self.dbm: DbManager | None = None
 
-        self.client: OMDbClient = OMDbClient()
-        self.dbm: DbManager = DbManager()
-        self.stage: int = 0
+        # Internal state
+        self.stage: int = 1
         self.media: Optional[MediaTitle] = None
         self.from_db: bool = False  # Navigation purpose
-        self.functions: List[Tuple[Callable, str, int]] = [  # (func, func_dest, menu_stage)
+        self.actions: List[Tuple[Callable, str]] = []
+        # self.search_flag = False
+
+        # Menu functions (init later)
+        self.functions: List[Tuple[Callable, str, int]] = []  # (func, func_dest, menu_stage)
+
+    # Init methods
+    def init_clients(self) -> None:
+        """ Initialize external clients and DB connection. """
+        self.client: OMDbClient = OMDbClient()
+        self.dbm: DbManager = DbManager()
+
+    def init_functions(self) -> None:
+        """ Initialize functions. """
+        self.functions: List[Tuple[Callable, str, int]] = [
             (self.search_omdb, "Search in OMDb", 1),
             (self.search_db, "Search in My Database", 1),
             (self.omdb_get_media_by_title, "Get media by title", 2),
@@ -41,7 +57,7 @@ class CLI:
             (self.save_json, "Save to JSON", 6),
             (self.save_yaml, "Save to YAML", 6)
         ]
-        self.actions: List[Tuple[Callable, str]] = []
+
 
     # Menu
     def show_menu(self) -> None:
@@ -61,15 +77,19 @@ class CLI:
         for i, (_, description, _) in enumerate(self.actions, start=1):
             print(f"[{i:>{n_width}}] {description}")
 
-        print(f'\n[{0:>{n_width}}] Go back to previous menu')
-        print(f'[{"'q'":>{n_width}}] Exit')
+        print('\n')
+        if not self.stage == 1:
+            print(f'[{0:>{n_width}}] Go back to previous menu')
 
-    def run_action(self, search_flag: Optional[bool] = None) -> None:
-        """ Main function. Parse menu navigation inputs. """
+        print(f'[{"q":>{n_width}}] Exit')
+
+    # Main loop
+    def run_action(self) -> None:
+        """ Main loop. Parse menu navigation inputs. """
         while True:
             # Do not show menu on search results
-            if not search_flag:
-                self.show_menu()
+            # if not self.search_flag:
+            #     self.show_menu()
 
             choice = input("\nEnter number: ")
 
@@ -96,13 +116,15 @@ class CLI:
                 continue
 
     # Messages
-    def intro_message(self) -> None:
+    @staticmethod
+    def intro_message() -> None:
         """ Main function. Print intro message. """
         # Message on utility launch
         print('\n' + '#' * 50 + '\n#' + ' ' * 48 + '#')
         print('#' + "Welcome to MovieDb".center(48) + '#')
+        print('#' + " " * 48 + '#')
+        print('#' + "Made by JSlevins".center(48) + '#')
         print('#' + ' ' * 48 + '#\n' + '#' * 50)
-        self.stage = 1
 
     def stage_message(self) -> None:
         """ Main function. Print the header for the current CLI stage. """
@@ -139,7 +161,6 @@ class CLI:
 
             # Update CLI stage and proceed
             self.stage = 3
-            self.run_action()
 
         except OMDbNotFoundError:
             # If there's no such title, trying to search
@@ -158,56 +179,47 @@ class CLI:
 
     def omdb_get_media_by_imdbid(self) -> None:
         """ Stage 2. Search title by imdbID in OMDb and manage errors."""
-        while True:
-            print('\n' + '-' * 50 + '\n')
-            title_id = input("Enter imdbID of a title. Expected format: 'tt123456789': ")
 
-            try:
-                # Trying to get title from OMDb by imdbID
-                data = self.client.get_title_by_imdbid(title_id)
-                # Create MediaTitle from data
-                self.media = MediaTitle.from_dict(data)
-                print(f"\n{self.media}")
+        print('\n' + '-' * 50 + '\n')
+        title_id = input("Enter imdbID of a title. Expected format: 'tt123456789': ")
 
-                # Update CLI stage
-                self.stage = 3
-                return self.run_action()
+        try:
+            # Trying to get title from OMDb by imdbID
+            data = self.client.get_title_by_imdbid(title_id)
+            # Create MediaTitle from data
+            self.media = MediaTitle.from_dict(data)
+            print(f"\n{self.media}")
 
-            except (ValueError, OMDbNotFoundError) as e:
-                print(e)
-                stdin = input("Press any key to try again...\nOr type 'q' for quit: ")
-                if stdin in QUIT_SET:
-                    return self.quit()
-                continue
+            # Update CLI stage
+            self.stage = 3
 
-            except OMDbError as e:
-                print(e)
-                print('Due to error, returning to main menu.')
-                self.stage = 1
-                return self.run_action()
+        except (ValueError, OMDbNotFoundError) as e:
+            print(e)
+
+        except OMDbError as e:
+            print(e)
+            print('Due to error in OMDb, returning to main menu.')
+            self.stage = 1
 
     def omdb_add_to_db(self) -> None:
         """ Stage 3: Add title to my database."""
         print("\nSaving media to database...")
-        while True:
-            rating = input("Enter rating (0-10): ")
-            if not self._rating_input_validation(rating):
-                continue
-            else:
-                try:
-                    result = self.dbm.add_title(self.media, rating)
-                    if result:
-                        print(f"'{self.media.title}' has been successfully saved to the database.")
-                        self.stage = 6
-                        return self.run_action()
-                except DbDuplicateMovieError as e:
-                    print("This media already exists in database.")
+        rating = input("Enter rating (0-10): ")
+        if not self._rating_input_validation(rating):
+            return
+        else:
+            try:
+                result = self.dbm.add_title(self.media, rating)
+                if result:
+                    print(f"'{self.media.title}' has been successfully saved to the database.")
                     self.stage = 6
-                    return self.run_action()
-                except Exception as e:
-                    print(f"Something went wrong. {e}")
-                    print("Returning to previous menu.")
-                    return self.go_back()
+
+            except DbDuplicateMovieError:
+                print("This media already exists in database.")
+                self.stage = 6
+
+            except Exception as e:
+                print(f"Something went wrong: {e}")
 
     # DB methods
     def db_get_media_by_title(self) -> None:
@@ -224,7 +236,6 @@ class CLI:
 
             #Update CLI stage and proceed
             self.stage = 6
-            self.run_action()
 
         except DbMovieNotFoundError:
             # If there's no such title, trying to search in Database
@@ -241,40 +252,29 @@ class CLI:
 
         except Exception as e:
             print(e)
-            stdin = input("\nPress any key to continue...\nOr type 'q' for quit: ")
-            if stdin in QUIT_SET:
-                quit()
-            self.go_back()  # Maybe I should implement "Try Again" here...
 
     def db_get_media_by_imdbid(self) -> None:
         """ Stage 4. Search title by imdbID in Db and manage errors. """
-        while True:
-            print('\n' + '-' * 50 + '\n')
-            title_id = input("Enter imdbID of a title. Expected format: 'tt123456789': ")
+        print('\n' + '-' * 50 + '\n')
+        title_id = input("Enter imdbID of a title. Expected format: 'tt123456789': ")
 
-            try:
-                # Trying to get title from Db by imdbID
-                data = self.dbm.get_title_by_imdbid(title_id)
-                # Create MediaTitle from data
-                self.media = MediaTitle.from_dict(data)
-                print(f"\n{self.media}")
+        try:
+            # Trying to get title from Db by imdbID
+            data = self.dbm.get_title_by_imdbid(title_id)
+            # Create MediaTitle from data
+            self.media = MediaTitle.from_dict(data)
+            print(f"\n{self.media}")
 
-                # Update CLI stage
-                self.stage = 6
-                return self.run_action()
+            # Update CLI stage
+            self.stage = 6
 
-            except (ValueError, DbMovieNotFoundError) as e:
-                print(e)
-                stdin = input("Press any key to try again...\nOr type 'q' for quit: ")
-                if stdin in QUIT_SET:
-                    return self.quit()
-                continue
+        except (ValueError, DbMovieNotFoundError) as e:
+            print(e)
 
-            except Exception as e:
-                print(e)
-                print('Due to error, returning to main menu.')
-                self.stage = 1
-                return self.run_action()
+        except Exception as e:
+            print(e)
+            print('Due to error, returning to main menu.')
+            self.stage = 1
 
     def db_show_all_media(self) -> None:
         """ Stage 4. Show all media titles from the Db. """
@@ -291,18 +291,13 @@ class CLI:
 
     def db_show_media_by_rating(self) -> None:
         """ stage 4. Show all media titles from the Db by rating equal or above present. """
-        while True:
-            rating = input("\nEnter minimum rating (0-10): ")
-
-            # Validation input check
-            if not self._rating_input_validation(rating):
-                continue
-
+        rating = input("\nEnter minimum rating (0-10): ")
+        if self._rating_input_validation(rating):
             data = self.dbm.get_titles_by_rating(rating)
             data = {"Search": data}
             self.stage = 5
             self.from_db = True
-            return self.print_search_results(data)
+            self.print_search_results(data)
 
     #Universal methods
     def print_search_results(self, data: dict[str, list[dict[str, str]]]) -> None:
@@ -345,8 +340,6 @@ class CLI:
         print(f'\n[{0:>{n_width}}] Go back to previous menu')
         print(f'[{"q":>{n_width}}] Exit')
 
-        self.run_action(search_flag=True)
-
     def media_show(self) -> None:
         """ Stage 6. Print FULL information about actual media title. """
         print('\n' + '-' * 75 + '\n')
@@ -374,13 +367,8 @@ class CLI:
 
     def media_update_rating(self) -> None:
         """ Stage 6. Update user rating for media title. """
-        while True:
-            rating = input("\nEnter new rating (0-10): ")
-
-            # Validation input check
-            if not self._rating_input_validation(rating):
-                continue
-
+        rating = input("\nEnter new rating (0-10): ")
+        if self._rating_input_validation(rating):
             try:
                 result = self.dbm.update_rating(self.media.imdbid, rating)
                 if result:
@@ -388,15 +376,11 @@ class CLI:
                 else:
                     print("\nSomething went wrong.")
 
-                # Returning to menu
-                return self.run_action()
-
             except Exception as e:
                 print(e)
                 stdin = input("Press 'enter' to try again...\nOr type 'q' for quit: ")
                 if stdin in QUIT_SET:
-                    return self.quit()
-                continue
+                    self.quit()
 
     def save_json(self) -> None:
         """ Stage 6. Save media title to JSON. """
@@ -426,12 +410,10 @@ class CLI:
     def search_omdb(self) -> None:
         """ Stage 1. Search OMDb. """
         self.stage = 2
-        self.run_action()
 
     def search_db(self) -> None:
         """ Stage 1. Search DB. """
         self.stage = 4
-        self.run_action()
 
     def go_back(self) -> None:
         """ Main function. Stage all except 1. Make 'return' to different menu stage. Depends on stage """
@@ -449,7 +431,6 @@ class CLI:
             self.stage = 4 if self.from_db else 2
         else:
             self.stage = back_menu[self.stage]
-        self.run_action()
 
     def quit(self) -> None:
         """ Main Function. Close DbManager connection and exit application. """
@@ -470,12 +451,10 @@ class CLI:
         if not rating.isdigit():
             print("\nInvalid input. Please enter a number.")
             return False
-
         rating = int(rating)
         if not 0 <= int(rating) <= 10:
             print("\nInvalid input. Rating must be between 0 and 10.")
             return False
-
         return True
 
     def _path_handler(self, ext: str) -> str | None:
@@ -483,26 +462,10 @@ class CLI:
         Handles save path. Ask for save path and filename. Set default filename / folder.
         Check if path exists. Check if filename exists. Rewrites or ask for new filename.
         """
-        def is_valid_path(path: str) -> bool:
+        def is_valid_path(p: str) -> bool:
             # Check for invalid characters in the path (Windows)
             invalid_chars = r'<>:"|?*'
-            return not any(char in path for char in invalid_chars)
-
-        def get_full_path(self, ext: str) -> str:
-            # File type validation
-            if ext not in ('json', 'yaml'):
-                raise ValueError(f"Unsupported file type: {ext}")
-
-            # Set file type
-            if ext == 'json':
-                extension = '.json'
-            else:
-                extension = '.yaml'
-
-            # Create full path with filename
-            filename = re.sub(r'[\\/:"*?<>|]+', '_', self.media.title)
-            full_path = os.path.join(self.path, filename + extension)
-            return full_path
+            return not any(char in p for char in invalid_chars)
 
         while True:
             # Directory
