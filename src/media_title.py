@@ -52,7 +52,5 @@ class MediaTitle:
         return string.split(", ")
 
     def __str__ (self):
-        # (temporary)
-        return f"{self.title}, {self.year}, {self.director}"
-
+        return f"'{self.title}' {self.year}"
     __repr__ = __str__

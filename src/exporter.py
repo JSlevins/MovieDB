@@ -4,7 +4,7 @@ import re
 
 import yaml
 
-from media_title import MediaTitle
+from src.media_title import MediaTitle
 
 class Exporter:
     """
