@@ -1,7 +1,6 @@
 import os
 import re
 import sys
-
 from functools import partial
 from typing import List, Tuple, Callable, Optional
 
@@ -27,12 +26,26 @@ class CLI:
         self.stage: int = 0
         self.media: Optional[MediaTitle] = None
         self.from_db: bool = False  # Navigation purpose
-        self.functions: List[Tuple[Callable, str, int]] = []  ### temp placeholder ### (func, func_dest, menu_stage)
+        self.functions: List[Tuple[Callable, str, int]] = [  # (func, func_dest, menu_stage)
+            (self.search_omdb, "Search in OMDb", 1),
+            (self.search_db, "Search in My Database", 1),
+            (self.omdb_get_media_by_title, "Get media by title", 2),
+            (self.omdb_get_media_by_imdbid, "Get media by imdbID", 2),
+            (self.omdb_add_to_db, "Add media to My Database", 3),
+            (self.db_get_media_by_title, "Get media by title", 4),
+            (self.db_get_media_by_imdbid, "Get media by imdbID", 4),
+            (self.db_show_all_media, "Show all media in My Database", 4),
+            (self.db_show_media_by_rating, "Show all high rated media", 4),
+            (self.media_show, "Show full media info", 6),
+            (self.media_update_rating, "Update rating", 6),
+            (self.save_json, "Save to JSON", 6),
+            (self.save_yaml, "Save to YAML", 6)
+        ]
         self.actions: List[Tuple[Callable, str]] = []
 
     # Menu
     def show_menu(self) -> None:
-        """ Print the menu for current CLI stage with header and list of actions. """
+        """ Main function. Print the menu for current CLI stage with header and list of actions. """
         # Print header
         self.stage_message()
 
@@ -52,7 +65,7 @@ class CLI:
         print(f'[{"'q'":>{n_width}}] Exit')
 
     def run_action(self, search_flag: Optional[bool] = None) -> None:
-        """ Main function. """
+        """ Main function. Parse menu navigation inputs. """
         while True:
             # Do not show menu on search results
             if not search_flag:
@@ -84,7 +97,7 @@ class CLI:
 
     # Messages
     def intro_message(self) -> None:
-        """ Print intro message. """
+        """ Main function. Print intro message. """
         # Message on utility launch
         print('\n' + '#' * 50 + '\n#' + ' ' * 48 + '#')
         print('#' + "Welcome to MovieDb".center(48) + '#')
@@ -92,7 +105,7 @@ class CLI:
         self.stage = 1
 
     def stage_message(self) -> None:
-        """ Print the header for the current CLI stage. """
+        """ Main function. Print the header for the current CLI stage. """
         # Set header
         stage_header = {
             1: "Main menu",
@@ -112,7 +125,7 @@ class CLI:
 
     # OMDb methods
     def omdb_get_media_by_title(self) -> None:
-        """ Search title by name in OMDb and manage errors. """
+        """ Stage 2. Search title by name in OMDb and manage errors. """
         print('\n' + '-' * 50 + '\n')
         title_name = input("Enter title: ")
 
@@ -144,7 +157,7 @@ class CLI:
             self.go_back()
 
     def omdb_get_media_by_imdbid(self) -> None:
-        """Search title by imdbID in OMDb and manage errors."""
+        """ Stage 2. Search title by imdbID in OMDb and manage errors."""
         while True:
             print('\n' + '-' * 50 + '\n')
             title_id = input("Enter imdbID of a title. Expected format: 'tt123456789': ")
@@ -198,7 +211,7 @@ class CLI:
 
     # DB methods
     def db_get_media_by_title(self) -> None:
-        """ Search title by name in Db and manage errors. """
+        """ Stage 4. Search title by name in Db and manage errors. """
         print('\n' + '-' * 50 + '\n')
         title_name = input("\nEnter title: ")
 
@@ -233,8 +246,8 @@ class CLI:
                 quit()
             self.go_back()  # Maybe I should implement "Try Again" here...
 
-    def db_get_media_by_id(self) -> None:
-        """ Search title by imdbID in Db and manage errors. """
+    def db_get_media_by_imdbid(self) -> None:
+        """ Stage 4. Search title by imdbID in Db and manage errors. """
         while True:
             print('\n' + '-' * 50 + '\n')
             title_id = input("Enter imdbID of a title. Expected format: 'tt123456789': ")
@@ -264,7 +277,7 @@ class CLI:
                 return self.run_action()
 
     def db_show_all_media(self) -> None:
-        """ Show all media titles from the Db. """
+        """ Stage 4. Show all media titles from the Db. """
         # Retrieve all metia titles
         data = self.dbm.get_all_titles()
 
@@ -277,7 +290,7 @@ class CLI:
         self.print_search_results(data)
 
     def db_show_media_by_rating(self) -> None:
-        """ Show all media titles from the Db by rating equal or above present. """
+        """ stage 4. Show all media titles from the Db by rating equal or above present. """
         while True:
             rating = input("\nEnter minimum rating (0-10): ")
 
@@ -293,7 +306,7 @@ class CLI:
 
     #Universal methods
     def print_search_results(self, data: dict[str, list[dict[str, str]]]) -> None:
-        """ Print search results. """
+        """ Main function for stage 5. Print search results. """
         # Print header
         self.stage_message()
 
@@ -335,7 +348,7 @@ class CLI:
         self.run_action(search_flag=True)
 
     def media_show(self) -> None:
-        """ Print FULL information about actual media title. """
+        """ Stage 6. Print FULL information about actual media title. """
         print('\n' + '-' * 75 + '\n')
         year_and_runtime = f"{self.media.year}   -({self.media.runtime})-"
         title = f"'{self.media.title}'"
@@ -360,7 +373,7 @@ class CLI:
         print(f"Awards: {self.media.awards}")
 
     def media_update_rating(self) -> None:
-        """ Update user rating for media title. """
+        """ Stage 6. Update user rating for media title. """
         while True:
             rating = input("\nEnter new rating (0-10): ")
 
@@ -386,7 +399,7 @@ class CLI:
                 continue
 
     def save_json(self) -> None:
-        """ Save media title to JSON. """
+        """ Stage 6. Save media title to JSON. """
         full_path = self._path_handler('json')
 
         exporter = Exporter(self.media, full_path)
@@ -398,7 +411,7 @@ class CLI:
             print(f"Failed to save JSON: {e}")
 
     def save_yaml(self) -> None:
-        """ Save media title to YAML. """
+        """ Stage 6. Save media title to YAML. """
         full_path = self._path_handler('yaml')
 
         exporter = Exporter(self.media, full_path)
@@ -411,15 +424,17 @@ class CLI:
 
     # Navigation methods
     def search_omdb(self) -> None:
+        """ Stage 1. Search OMDb. """
         self.stage = 2
         self.run_action()
 
     def search_db(self) -> None:
+        """ Stage 1. Search DB. """
         self.stage = 4
         self.run_action()
 
     def go_back(self) -> None:
-        """ Make 'return' to different menu stage. Depends on stage """
+        """ Main function. Stage all except 1. Make 'return' to different menu stage. Depends on stage """
         back_menu = {
             1: 1,  # Main menu
             2: 1,  # From OMDb to main menu
@@ -437,7 +452,7 @@ class CLI:
         self.run_action()
 
     def quit(self) -> None:
-        """ Close DbManager connection and exit application. """
+        """ Main Function. Close DbManager connection and exit application. """
         print("\nExiting MovieDb. Goodbye!")
 
         #Close DbManager connection
