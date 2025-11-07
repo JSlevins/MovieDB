@@ -1,36 +1,7 @@
-from dotenv import load_dotenv
-import os
-import requests
+from src.cli import CLI
 
-from src.dbmanager import DbManager
-from src.media_title import MediaTitle
-
-load_dotenv()
-api_key = os.getenv('OMDb_API_KEY')
-
-def get_movie(title):
-
-    url = 'http://www.omdbapi.com/'
-    params = {
-        'apikey': api_key,
-        't': title,
-    }
-
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        data = response.json()
-        return data
-    else:
-        return f"Error: {response.status_code}"
-
-# Example and testing
-movie_info = get_movie("Inception")
-movie = MediaTitle.from_dict(movie_info)
-print("-" * 50)
-print('API MOVIE:')
-print(movie)
-dbm = DbManager()
-dbm.add_title(movie, 10)
-print("\n"+"-"*50)
-print('Db MOVIE:')
-print(dbm.get_title_by_imdbid('tt1375666'))
+if __name__ == "__main__":
+    cli = CLI()
+    cli.init_clients()
+    cli.intro_message()
+    cli.run_action()
