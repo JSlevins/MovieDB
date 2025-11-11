@@ -6,7 +6,7 @@ from src.media_title import MediaTitle
 
 @pytest.fixture
 def get_movie():
-    with open ("tests/test_unit/test_movie.json", "r") as file:
+    with open ("tests/test_unit/test_movie.json", "r", encoding="utf-8") as file:
         movie = json.load(file)
     return movie
 
