@@ -91,6 +91,7 @@ class CLI:
             # if not self.search_flag:
             #     self.show_menu()
 
+            self.show_menu()
             choice = input("\nEnter number: ")
 
             # Validation input check
@@ -204,22 +205,19 @@ class CLI:
     def omdb_add_to_db(self) -> None:
         """ Stage 3: Add title to my database."""
         print("\nSaving media to database...")
-        rating = input("Enter rating (0-10): ")
-        if not self._rating_input_validation(rating):
-            return
-        else:
-            try:
-                result = self.dbm.add_title(self.media, rating)
-                if result:
-                    print(f"'{self.media.title}' has been successfully saved to the database.")
-                    self.stage = 6
-
-            except DbDuplicateMovieError:
-                print("This media already exists in database.")
+        rating = self._rating_input()
+        try:
+            result = self.dbm.add_title(self.media, rating)
+            if result:
+                print(f"'{self.media.title}' has been successfully saved to the database.")
                 self.stage = 6
 
-            except Exception as e:
-                print(f"Something went wrong: {e}")
+        except DbDuplicateMovieError:
+            print("This media already exists in database.")
+            self.stage = 6
+
+        except Exception as e:
+            print(f"Something went wrong: {e}")
 
     # DB methods
     def db_get_media_by_title(self) -> None:
@@ -291,15 +289,15 @@ class CLI:
 
     def db_show_media_by_rating(self) -> None:
         """ stage 4. Show all media titles from the Db by rating equal or above present. """
-        rating = input("\nEnter minimum rating (0-10): ")
-        if self._rating_input_validation(rating):
-            data = self.dbm.get_titles_by_rating(rating)
-            data = {"Search": data}
-            self.stage = 5
-            self.from_db = True
-            self.print_search_results(data)
+        rating = self._rating_input()
+        data = self.dbm.get_titles_by_rating(rating)
+        data = {"Search": data}
+        self.stage = 5
+        self.from_db = True
+        self.print_search_results(data)
 
     #Universal methods
+    # Check how it will actually work
     def print_search_results(self, data: dict[str, list[dict[str, str]]]) -> None:
         """ Main function for stage 5. Print search results. """
         # Print header
@@ -310,7 +308,7 @@ class CLI:
 
         # Checking for empty list
         if len(results) == 0:
-            print("\nNothing was found.")
+            print("\nNothing was found...")
 
         # Make self.action list
         self.actions = []
@@ -367,20 +365,19 @@ class CLI:
 
     def media_update_rating(self) -> None:
         """ Stage 6. Update user rating for media title. """
-        rating = input("\nEnter new rating (0-10): ")
-        if self._rating_input_validation(rating):
-            try:
-                result = self.dbm.update_rating(self.media.imdbid, rating)
-                if result:
-                    print("\nMedia title has been updated.")
-                else:
-                    print("\nSomething went wrong.")
+        rating = self._rating_input()
+        try:
+            result = self.dbm.update_rating(self.media.imdbid, rating)
+            if result:
+                print("\nMedia title has been updated.")
+            else:
+                print("\nSomething went wrong.")
 
-            except Exception as e:
-                print(e)
-                stdin = input("Press 'enter' to try again...\nOr type 'q' for quit: ")
-                if stdin in QUIT_SET:
-                    self.quit()
+        except Exception as e:
+            print(e)
+            stdin = input("Press 'enter' to try again...\nOr type 'q' for quit: ")
+            if stdin in QUIT_SET:
+                self.quit()
 
     def save_json(self) -> None:
         """ Stage 6. Save media title to JSON. """
@@ -429,6 +426,7 @@ class CLI:
         if self.stage == 5:
             # From Search Results to OMDb menu or MyDb menu
             self.stage = 4 if self.from_db else 2
+            self.from_db = False
         else:
             self.stage = back_menu[self.stage]
 
@@ -446,16 +444,18 @@ class CLI:
 
     # Inner methods
     @staticmethod
-    def _rating_input_validation(rating: str) -> bool:
-        # Validation input check
-        if not rating.isdigit():
-            print("\nInvalid input. Please enter a number.")
-            return False
-        rating = int(rating)
-        if not 0 <= int(rating) <= 10:
-            print("\nInvalid input. Rating must be between 0 and 10.")
-            return False
-        return True
+    def _rating_input() -> str | None:
+        while True:
+            rating = input("Enter rating (0-10): ")
+            # Validation input check
+            if not rating.isdigit():
+                print("\nInvalid input. Please enter a number.")
+                continue
+            rating = int(rating)
+            if not 0 <= int(rating) <= 10:
+                print("\nInvalid input. Rating must be between 0 and 10.")
+                continue
+            return str(rating)
 
     def _path_handler(self, ext: str) -> str | None:
         """
@@ -465,7 +465,8 @@ class CLI:
         def is_valid_path(p: str) -> bool:
             # Check for invalid characters in the path (Windows)
             invalid_chars = r'<>:"|?*'
-            return not any(char in p for char in invalid_chars)
+            path_to_check = p[2:] if len(p) > 1 and p[1] == ":" else p
+            return not any(char in path_to_check for char in invalid_chars)
 
         while True:
             # Directory
@@ -474,7 +475,7 @@ class CLI:
                 path = os.getcwd()
 
             if not is_valid_path(path):
-                print("Invalid folder path. Please avoid <>:\"|?* characters.")
+                print("Invalid folder path. Please avoid <>:\"|?* characters in folder path.")
                 continue
 
             if os.path.exists(path):
