@@ -12,15 +12,26 @@ services:
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql    #path to init.sql
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d moviedb"]
+      interval: 2s
+      timeout: 2s
+      retries: 3
 
   app:
     build:
       context: .     #path to Dockerfile
     container_name: moviedb_app
     depends_on:
-      - db
-    command: sh -c "sleep 3 && PYTHONPATH=/app python src/main.py"
+      db:
+        condition: service_healthy
+#   command: sh -c "sleep 3 && PYTHONPATH=/app python -i src/main.py"
+#   command: ["python", "-i", "src/main.py"]
+    environment:
+      PYTHONPATH: /app
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
+    command: python -u src/main.py
     tty: true
+    stdin_open: true
