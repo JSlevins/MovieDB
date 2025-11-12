@@ -29,7 +29,7 @@ class CLI:
         self.media: Optional[MediaTitle] = None
         self.from_db: bool = False  # Navigation purpose
         self.actions: List[Tuple[Callable, str]] = []
-        # self.search_flag = False
+        self.print_search_flag = False
 
         # Menu functions (init later)
         self.functions: List[Tuple[Callable, str, int]] = []  # (func, func_dest, menu_stage)
@@ -88,10 +88,10 @@ class CLI:
         """ Main loop. Parse menu navigation inputs. """
         while True:
             # Do not show menu on search results
-            # if not self.search_flag:
-            #     self.show_menu()
+            if not self.print_search_flag:
+                self.show_menu()
 
-            self.show_menu()
+            self.print_search_flag = False
             choice = input("\nEnter number: ")
 
             # Validation input check
@@ -106,19 +106,19 @@ class CLI:
             # 'Go back' input check
             choice = int(choice)
             if choice == 0:
-                return self.go_back()
+                self.go_back()
 
             # Correct input check and run actions
             if 1 <= choice <= len(self.actions):
                 func = self.actions[choice - 1][0]
-                return func()
+                func()
             else:
                 print("\nInvalid choice. Please enter a valid number.")
                 continue
 
     # Messages
-    @staticmethod
-    def intro_message() -> None:
+    # @staticmethod
+    def intro_message(self) -> None:
         """ Main function. Print intro message. """
         # Message on utility launch
         print('\n' + '#' * 50 + '\n#' + ' ' * 48 + '#')
@@ -133,12 +133,15 @@ class CLI:
         stage_header = {
             1: "Main menu",
             2: "OMDb",
-            3: f"OMDb\n'{self.media.title}' ({self.media.year})",
+            3: lambda: f"OMDb\n'{self.media.title}' ({self.media.year})",
             4: "My Database",
             5: "Search results",
-            6: f"My Database\n'{self.media.title}' ({self.media.year})"
+            6: lambda: f"My Database\n'{self.media.title}' ({self.media.year})"
         }
         msg = stage_header.get(self.stage)
+
+        if callable(msg):
+            msg = msg()
 
         # Print header
         print('\n' + '-' * 50 + '\n')
@@ -165,6 +168,7 @@ class CLI:
 
         except OMDbNotFoundError:
             # If there's no such title, trying to search
+            print("\nMedia not found. Continue to search...\n")
             data = self.client.search_title(title_name)
             # Continue to search results
             self.stage = 5
@@ -237,7 +241,7 @@ class CLI:
 
         except DbMovieNotFoundError:
             # If there's no such title, trying to search in Database
-            print("\nMovie not found. Continue to search...\n")
+            print("\nMedia not found. Continue to search...\n")
             data = self.dbm.search_titles_by_name(title_name)
 
             # Formating data
@@ -296,8 +300,7 @@ class CLI:
         self.from_db = True
         self.print_search_results(data)
 
-    #Universal methods
-    # Check how it will actually work
+    # Universal methods
     def print_search_results(self, data: dict[str, list[dict[str, str]]]) -> None:
         """ Main function for stage 5. Print search results. """
         # Print header
@@ -337,6 +340,7 @@ class CLI:
         # Print Go back and exit cases
         print(f'\n[{0:>{n_width}}] Go back to previous menu')
         print(f'[{"q":>{n_width}}] Exit')
+        self.print_search_flag = True
 
     def media_show(self) -> None:
         """ Stage 6. Print FULL information about actual media title. """
