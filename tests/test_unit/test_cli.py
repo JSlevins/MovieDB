@@ -1,14 +1,17 @@
 import functools
-
-import pytest
 import os
 import json
 import shutil
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from src.cli import CLI
+from src.dbmanager import DbMovieNotFoundError
 from src.media_title import MediaTitle
+from src.omdb_client import OMDbNotFoundError
+
 
 # FIXTURES
 @pytest.fixture
@@ -45,11 +48,10 @@ def media_title():
 @pytest.fixture
 def fake_folder():
     """ Fake folder fixture creation and deletion. """
-    path = "C:\\FakeFolder"
-    os.makedirs(path, exist_ok=True)
-    with open("C:\\FakeFolder\\occupied.json", "w", encoding="utf-8"):
-        pass
-    yield path
+    path = Path.cwd() / "FakeFolder"
+    path.mkdir(exist_ok=True)
+    (path / "occupied.json").touch()
+    yield str(path)
 
     if os.path.exists(path):
         shutil.rmtree(path)
@@ -191,8 +193,10 @@ def test_path_handler_empty_input(cli_real, media_title, fake_folder):
     with patch("builtins.input", side_effect=["", ""]):
         with patch("os.getcwd", return_value=fake_folder):
             result = cli._path_handler('json')
+            path = os.getcwd()
 
-    expected_path = "C:\\FakeFolder\\Inception.json"
+
+    expected_path = os.path.join(path, "Inception.json")
     assert result == expected_path
 
 def test_path_handler_file_exists_cases(cli_real, media_title, fake_folder):
@@ -203,8 +207,10 @@ def test_path_handler_file_exists_cases(cli_real, media_title, fake_folder):
     with patch("builtins.input", side_effect=["", "occupied", "abc", "", "occupied", "c"]):
         with patch("os.getcwd", return_value=fake_folder):
             result = cli._path_handler('json')
+            path = os.getcwd()
+            print(path)
 
-    expected_path = "C:\\FakeFolder\\occupied_1.json"
+    expected_path = os.path.join(path, "occupied_1.json")
     assert result == expected_path
 
 def test_go_back_cases(cli_real):
@@ -264,3 +270,38 @@ def test_print_search_results_empty_list(cli_mock):
     mock_print.assert_any_call("\nNothing was found...")
     assert len(cli.actions) == len(empty_list["Search"])
 
+def test_omdb_not_found_error(cli_mock, fake_list):
+    """ Test that OMDb proceeds to returns error when omdb is not available.
+        Same sequence for DbMovieNotFoundError. """
+    cli = cli_mock
+
+    # Mocks and data
+    cli.client.get_title_by_name = MagicMock(side_effect=OMDbNotFoundError)
+    cli.client.search_title.return_value = fake_list
+    cli.print_search_results = MagicMock()
+
+    with patch("builtins.input", return_value="Some Title"):
+        cli.omdb_get_media_by_title()
+
+    cli.client.get_title_by_name.assert_called_once_with("Some Title")
+    cli.client.search_title.assert_called_once_with("Some Title")  # type: ignore
+    cli.print_search_results.assert_called_once_with(fake_list)
+    assert cli.stage == 5
+    assert cli.from_db is False
+
+def test_db_movie_not_found_error(cli_mock, fake_list):
+    cli = cli_mock
+
+    # Mocks and data
+    cli.dbm.get_title_by_name = MagicMock(side_effect=DbMovieNotFoundError)
+    cli.dbm.search_titles_by_name.return_value = fake_list["Search"]
+    cli.print_search_results = MagicMock()
+
+    with patch("builtins.input", return_value="Another Title"):
+        cli.db_get_media_by_title()
+
+    cli.dbm.get_title_by_name.assert_called_once_with("Another Title")
+    cli.dbm.search_titles_by_name.assert_called_once_with("Another Title")  # type: ignore
+    cli.print_search_results.assert_called_once()
+    assert cli.stage == 5
+    assert cli.from_db is True
