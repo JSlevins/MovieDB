@@ -22,7 +22,7 @@ class DbManager:
     Provides methods to add, fetch, search, and filter movies while ensuring transactional safety.
     """
 
-    def __init__(self, database="moviedb", host = "db", port = "5432", user = db_user, password = db_password):
+    def __init__(self, database = "moviedb", host = "db", port = "5432", user = db_user, password = db_password):
         self.conn = psycopg2.connect(
             database = database,
             host = host,
