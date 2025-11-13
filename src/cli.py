@@ -494,9 +494,10 @@ class CLI:
 
         while True:
             # Directory
-            path = input(f"\nEnter folder path to save the JSON file (default: current folder): ").strip()
+
+            path = input(f"\nEnter folder path to save the JSON file (default: "'/app/files'"): ").strip()
             if not path:
-                path = os.getcwd()
+                path = "/app/files"
 
             if not is_valid_path(path):
                 print("Invalid folder path. Please avoid <>:\"|?* characters in folder path.")

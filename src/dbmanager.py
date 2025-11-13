@@ -88,12 +88,10 @@ class DbManager:
         Search titles by partial name.
         :return: list[MediaTitle]: List of MediaTitle objects
         """
-        print("**1**")
         # Getting list of imdbIDs that match the pattern 'substring'
         query = self.query_search_titles_by_name(substring)
 
         # Returning list of MediaTitles
-        print ("**1.1.**")
         return [self.get_title_by_imdbid(imdbid) for imdbid in query] if query else []
 
     def update_rating(self, imdbid: str, rating: str):

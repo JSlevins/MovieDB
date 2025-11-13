@@ -33,4 +33,5 @@ class Exporter:
     def _to_dict(self):
         # Convert MediaTitle to dict
         media_title_dict = vars(self.media_title)
+        media_title_dict["imdb_rating"] = str(media_title_dict["imdb_rating"])
         return media_title_dict
