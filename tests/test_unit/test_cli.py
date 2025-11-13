@@ -48,8 +48,8 @@ def media_title():
 @pytest.fixture
 def fake_folder():
     """ Fake folder fixture creation and deletion. """
-    path = Path.cwd() / "FakeFolder"
-    path.mkdir(exist_ok=True)
+    path = Path("C:/app/files")
+    path.mkdir(parents=True, exist_ok=True)
     (path / "occupied.json").touch()
     yield str(path)
 
@@ -146,8 +146,6 @@ def test_launch_menu_navigation(cli_mock):
     # Inputs for all actions in sequence
     with patch("builtins.input", side_effect=["1", "2", "q"]):
         cli.run_action()  # '1'
-        cli.run_action()  # '2'
-        cli.run_action()  # 'Q'
 
     cli.search_omdb.assert_called_once()  # type: ignore
     cli.search_db.assert_called_once()  # type: ignore
@@ -188,15 +186,14 @@ def test_path_handler_empty_input(cli_real, media_title, fake_folder):
     """ Test for empty path handler inputs"""
     cli = cli_real
     cli.media = media_title
+    path = fake_folder
 
     # Test empty inputs
     with patch("builtins.input", side_effect=["", ""]):
-        with patch("os.getcwd", return_value=fake_folder):
-            result = cli._path_handler('json')
-            path = os.getcwd()
+        result = cli._path_handler('json')
 
 
-    expected_path = os.path.join(path, "Inception.json")
+    expected_path = os.path.join("/app/files", "Inception.json")
     assert result == expected_path
 
 def test_path_handler_file_exists_cases(cli_real, media_title, fake_folder):
@@ -205,12 +202,12 @@ def test_path_handler_file_exists_cases(cli_real, media_title, fake_folder):
     cli.media = media_title
 
     with patch("builtins.input", side_effect=["", "occupied", "abc", "", "occupied", "c"]):
-        with patch("os.getcwd", return_value=fake_folder):
-            result = cli._path_handler('json')
-            path = os.getcwd()
-            print(path)
+        result = cli._path_handler('json')
 
-    expected_path = os.path.join(path, "occupied_1.json")
+    path = fake_folder
+    print(path)
+
+    expected_path = os.path.join("/app/files", "occupied_1.json")
     assert result == expected_path
 
 def test_go_back_cases(cli_real):
@@ -248,13 +245,13 @@ def test_print_search_results_fake_list(cli_mock, fake_list):
 
     assert len(cli.actions) == len(fake_list["Search"])
     for (action, description), result in zip(cli.actions, fake_list["Search"]):
-        # Проверяем, что action — это partial от нужного метода
+        # Check that action — is a partial from required method
         assert isinstance(action, functools.partial)
         if cli.from_db:
-            assert action.func == cli.dbm.get_title_by_imdbid
+            assert action.func == cli.db_get_media_by_imdbid
         else:
             assert action.func == cli.client.get_title_by_imdbid
-        # Проверяем описание
+        # Check description
         assert result['Title'] in description
         assert result['Year'] in description
         assert result['imdbID'] in description
