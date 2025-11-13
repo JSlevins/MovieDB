@@ -25,13 +25,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
-#   command: sh -c "sleep 3 && PYTHONPATH=/app python -i src/main.py"
-#   command: ["python", "-i", "src/main.py"]
     environment:
       PYTHONPATH: /app
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
+      - ./_slev/files:/app/files    # folder for saving files
     command: python -u src/main.py
     tty: true
     stdin_open: true
