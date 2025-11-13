@@ -88,10 +88,12 @@ class DbManager:
         Search titles by partial name.
         :return: list[MediaTitle]: List of MediaTitle objects
         """
+        print("**1**")
         # Getting list of imdbIDs that match the pattern 'substring'
         query = self.query_search_titles_by_name(substring)
 
         # Returning list of MediaTitles
+        print ("**1.1.**")
         return [self.get_title_by_imdbid(imdbid) for imdbid in query] if query else []
 
     def update_rating(self, imdbid: str, rating: str):
@@ -233,11 +235,13 @@ class DbManager:
         rows = self.cur.fetchall()
         return [row["imdbid"] for row in rows]
 
-    def query_get_title_by_name(self, title_name: str) -> str:
+    def query_get_title_by_name(self, title_name: str) -> str | None:
         # Returns imdbID if it finds title or None if it's not
         self.cur.execute("SELECT imdbid FROM titles WHERE LOWER(title) = LOWER(%s);", (title_name,))
         rows = self.cur.fetchall()
-        return rows[0]["imdbid"]
+        if rows:
+            return rows[0]["imdbid"]
+        else: return None
 
     def query_get_title_by_imdbid(self, imdbid) -> dict:
         self.cur.execute("""SELECT
@@ -277,7 +281,7 @@ class DbManager:
         return dict(self.cur.fetchone())
 
     def query_search_titles_by_name(self, substring) -> list[str]:
-        self.cur.execute("SELECT imdbid FROM titles WHERE name ILIKE %s;", (f"%{substring}%",))
+        self.cur.execute("SELECT imdbid FROM titles WHERE title ILIKE %s;", (f"%{substring}%",))
         rows = self.cur.fetchall()
         return [row["imdbid"] for row in rows]
 

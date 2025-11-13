@@ -53,7 +53,7 @@ class OMDbClient:
         # Query parameters
         params = {
             'apikey': self.api_key,
-            's': substring
+            's': substring,
         }
 
         return self._request(params)

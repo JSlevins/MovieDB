@@ -168,12 +168,18 @@ class CLI:
 
         except OMDbNotFoundError:
             # If there's no such title, trying to search
-            print("\nMedia not found. Continue to search...\n")
-            data = self.client.search_title(title_name)
-            # Continue to search results
-            self.stage = 5
-            self.from_db = False
-            self.print_search_results(data)
+            print("\nMedia not found. Continue to search...")
+
+            try:
+                data = self.client.search_title(title_name)
+                # Continue to search results
+                self.stage = 5
+                self.from_db = False
+                self.print_search_results(data)
+
+            except OMDbNotFoundError:
+                # If nothing was found either
+                print("\nNothing was found at all. Try to search again...")
 
         except OMDbError as e:
             print(e)
@@ -214,6 +220,8 @@ class CLI:
             result = self.dbm.add_title(self.media, rating)
             if result:
                 print(f"'{self.media.title}' has been successfully saved to the database.")
+                # Update self.media (with new rating)
+                self.db_get_media_by_imdbid(self.media.imdbid)
                 self.stage = 6
 
         except DbDuplicateMovieError:
@@ -232,6 +240,7 @@ class CLI:
         try:
             # Trying to get title from OMDb by exact name
             data = self.dbm.get_title_by_name(title_name)
+            print("**0**")
 
             self.media = MediaTitle.from_dict(data)
             print(f"\n{self.media}")
@@ -242,24 +251,32 @@ class CLI:
         except DbMovieNotFoundError:
             # If there's no such title, trying to search in Database
             print("\nMedia not found. Continue to search...\n")
-            data = self.dbm.search_titles_by_name(title_name)
 
-            # Formating data
-            data = {"Search": data}
+            try:
+                data = self.dbm.search_titles_by_name(title_name)
 
-            # Continue to search results
-            self.stage = 5
-            self.from_db = True
-            self.print_search_results(data)
+                # Formating data
+                data = {"Search": data}
+
+                # Continue to search results
+                self.stage = 5
+                self.from_db = True
+                self.print_search_results(data)
+
+            except DbMovieNotFoundError:
+                # If nothing was found either
+                print("\nNothing was found at all. Try to search again...")
 
         except Exception as e:
             print(e)
 
-    def db_get_media_by_imdbid(self) -> None:
+    def db_get_media_by_imdbid(self, imdbid: None) -> None:
         """ Stage 4. Search title by imdbID in Db and manage errors. """
-        print('\n' + '-' * 50 + '\n')
-        title_id = input("Enter imdbID of a title. Expected format: 'tt123456789': ")
-
+        if not imdbid:
+            print('\n' + '-' * 50 + '\n')
+            title_id = input("Enter imdbID of a title. Expected format: 'tt123456789': ")
+        else:
+            title_id = imdbid
         try:
             # Trying to get title from Db by imdbID
             data = self.dbm.get_title_by_imdbid(title_id)
@@ -323,7 +340,7 @@ class CLI:
             description = f'{title_str:<50} {year_str:<6} {imdb_id_str}'
 
             if self.from_db:
-                self.actions.append((partial(self.dbm.get_title_by_imdbid, imdb_id_str), description))
+                self.actions.append((partial(self.db_get_media_by_imdbid, imdb_id_str), description))
             else:
                 self.actions.append((partial(self.client.get_title_by_imdbid, imdb_id_str), description))
 
@@ -374,6 +391,9 @@ class CLI:
             result = self.dbm.update_rating(self.media.imdbid, rating)
             if result:
                 print("\nMedia title has been updated.")
+                # Update self.media
+                self.db_get_media_by_imdbid(self.media.imdbid)
+
             else:
                 print("\nSomething went wrong.")
 
