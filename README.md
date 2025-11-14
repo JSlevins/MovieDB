@@ -30,3 +30,11 @@ PYTHONPATH=.
 ```
 Replace placeholders with your actual OMDb API key and PostgreSQL credentials.
 Do **not** commit this file to GitHub — add it to `.gitignore`.
+
+## Usage / Run
+
+To run the project, execute the `start.sh` script:
+
+```bash
+./start.sh
+```
