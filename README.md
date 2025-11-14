@@ -1,13 +1,19 @@
-**MovieDb** — A CLI utility for searching movies and series via the OMDb API, storing data in a PostgreSQL database, and generating YAML files for Obsidian.
+# MovieDB CLI
 
-**Status:** Work in progress
+**MovieDB CLI** is a Python command-line application to search, add, and filter movies using a PostgreSQL database and the OMDb API. It supports exporting data to JSON or YAML and includes unit tests.
 
-**Features:**
+## Features
+- Search movies by title or IMDb ID via OMDb API or local database
+- Add new movies to the PostgreSQL database
+- Filter movies by rating
+- Export movie data to JSON or YAML
+- Fully tested with pytest
 
-* Search movies/series by title
-* Retrieve detailed information including poster, plot, and ratings
-* Save and update data in PostgreSQL
-* Export data to YAML files for Obsidian integration
-* Manage personal ratings and watch status
-
-**Tech stack:** Python 3.14, PostgreSQL, Docker, requests, python-dotenv
+## Tech Stack
+- Python 3.x
+- PostgreSQL
+- psycopg2
+- requests
+- dotenv
+- pytest
+- YAML/JSON handling
