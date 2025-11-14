@@ -19,9 +19,6 @@ It supports exporting data to JSON or YAML and includes unit tests.
 - pytest
 - YAML/JSON handling
 
-
-## Configuration
-
 ## Configuration
 
 Create a `.env` file in the project root with the following variables:
